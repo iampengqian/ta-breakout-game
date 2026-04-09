@@ -2,6 +2,7 @@ import { Ball } from './entities/Ball.js'
 import { Paddle } from './entities/Paddle.js'
 import { Brick } from './entities/Brick.js'
 import { InputManager } from './InputManager.js'
+import { levelConfig, levelLayout } from './config/levels.js'
 
 export class GameManager {
   constructor(canvasId) {
@@ -36,30 +37,28 @@ export class GameManager {
 
     // Initialize bricks
     this.entities.bricks = []
+    this.score = 0
     this.createBricks()
   }
 
   createBricks() {
-    const brickRowCount = 3
-    const brickColumnCount = 5
-    const brickWidth = 75
-    const brickHeight = 20
-    const brickPadding = 10
-    const brickOffsetTop = 30
-    const brickOffsetLeft = 30
-
-    for (let r = 0; r < brickRowCount; r++) {
+    for (let r = 0; r < levelConfig.brickRowCount; r++) {
       this.entities.bricks[r] = []
-      for (let c = 0; c < brickColumnCount; c++) {
-        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft
-        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop
-        this.entities.bricks[r][c] = new Brick(
-          brickX,
-          brickY,
-          brickWidth,
-          brickHeight,
-          `hsl(${r * 60}, 70%, 50%)`
-        )
+      for (let c = 0; c < levelConfig.brickColumnCount; c++) {
+        // Only create brick if layout indicates it should exist
+        if (levelLayout[r] && levelLayout[r][c] === 1) {
+          const brickX = c * (levelConfig.brickWidth + levelConfig.brickPadding) + levelConfig.brickOffsetLeft
+          const brickY = r * (levelConfig.brickHeight + levelConfig.brickPadding) + levelConfig.brickOffsetTop
+          this.entities.bricks[r][c] = new Brick(
+            brickX,
+            brickY,
+            levelConfig.brickWidth,
+            levelConfig.brickHeight,
+            `hsl(${r * 60}, 70%, 50%)`
+          )
+        } else {
+          this.entities.bricks[r][c] = null
+        }
       }
     }
   }
@@ -112,6 +111,12 @@ export class GameManager {
 
     // Update ball position
     this.entities.ball.update()
+
+    // Check collisions
+    this.checkCollisions()
+
+    // Check win condition
+    this.checkWinCondition()
   }
 
   draw() {
@@ -125,12 +130,114 @@ export class GameManager {
     // Draw bricks
     this.entities.bricks.forEach(row => {
       row.forEach(brick => {
-        brick.draw(this.ctx)
+        if (brick) {
+          brick.draw(this.ctx)
+        }
       })
     })
+
+    // Draw score
+    this.ctx.fillStyle = '#0095DD'
+    this.ctx.font = '16px Arial'
+    this.ctx.fillText(`Score: ${this.score}`, 8, 20)
   }
 
   getGameState() {
     return this.gameState
+  }
+
+  checkCollisions() {
+    this.checkPaddleCollision()
+    this.checkBrickCollisions()
+  }
+
+  checkPaddleCollision() {
+    const ball = this.entities.ball
+    const paddle = this.entities.paddle
+
+    // Ball collision with paddle
+    if (
+      ball.x + ball.radius > paddle.x &&
+      ball.x - ball.radius < paddle.x + paddle.width &&
+      ball.y + ball.radius > paddle.y &&
+      ball.y - ball.radius < paddle.y + paddle.height
+    ) {
+      // Calculate hit position on paddle (-1 to 1)
+      const hitPos = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2)
+
+      // Reflect on Y-axis when hitting paddle top
+      ball.speedY = -Math.abs(ball.speedY)
+
+      // Add X-axis component based on where ball hits paddle
+      ball.speedX = hitPos * 5
+    }
+  }
+
+  checkBrickCollisions() {
+    const ball = this.entities.ball
+
+    for (let r = 0; r < levelConfig.brickRowCount; r++) {
+      for (let c = 0; c < levelConfig.brickColumnCount; c++) {
+        const brick = this.entities.bricks[r][c]
+
+        if (brick && brick.visible) {
+          // Ball collision with brick
+          if (
+            ball.x + ball.radius > brick.x &&
+            ball.x - ball.radius < brick.x + brick.width &&
+            ball.y + ball.radius > brick.y &&
+            ball.y - ball.radius < brick.y + brick.height
+          ) {
+            // Determine collision side
+            const ballCenterX = ball.x
+            const ballCenterY = ball.y
+            const brickCenterX = brick.x + brick.width / 2
+            const brickCenterY = brick.y + brick.height / 2
+
+            // Calculate overlap on each axis
+            const overlapX = (brick.width / 2 + ball.radius) - Math.abs(ballCenterX - brickCenterX)
+            const overlapY = (brick.height / 2 + ball.radius) - Math.abs(ballCenterY - brickCenterY)
+
+            // Reflect based on smallest overlap (collision side)
+            if (overlapX < overlapY) {
+              // Hit left or right side - reflect X-axis
+              ball.speedX = -ball.speedX
+            } else {
+              // Hit top or bottom - reflect Y-axis
+              ball.speedY = -ball.speedY
+            }
+
+            // Hit brick and update score
+            if (brick.hit()) {
+              this.score += 10
+            }
+          }
+        }
+      }
+    }
+  }
+
+  checkWinCondition() {
+    let bricksRemaining = 0
+
+    for (let r = 0; r < levelConfig.brickRowCount; r++) {
+      for (let c = 0; c < levelConfig.brickColumnCount; c++) {
+        const brick = this.entities.bricks[r][c]
+        if (brick && brick.visible) {
+          bricksRemaining++
+        }
+      }
+    }
+
+    if (bricksRemaining === 0) {
+      this.gameState = 'victory'
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId)
+      }
+    }
+  }
+
+  getScore() {
+    return this.score
   }
 }

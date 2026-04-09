@@ -28,4 +28,9 @@ export class Brick {
     }
     return false
   }
+
+  destroy() {
+    this.visible = false
+    this.health = 0
+  }
 }
