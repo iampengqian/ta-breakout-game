@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Scaling Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
+
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+
+        #coordinates {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+
+        canvas {
+            background-color: #000;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>Canvas Scaling Test</h3>
+        <p>Virtual Resolution: 800x600</p>
+        <p>Resize the window to test scaling</p>
+        <p>Click to see coordinate mapping</p>
+    </div>
+
+    <div id="coordinates">
+        <p>Mouse Position: <span id="mousePos">-</span></p>
+        <p>Virtual Position: <span id="virtualPos">-</span></p>
+    </div>
+
+    <script type="module">
+        import canvasScaler from './src/utils/CanvasScaler.js';
+
+        const canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        const mousePosEl = document.getElementById('mousePos');
+        const virtualPosEl = document.getElementById('virtualPos');
+
+        // Draw test pattern
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw virtual grid
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+
+            // Vertical lines
+            for (let x = 0; x <= canvasScaler.VIRTUAL_WIDTH; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasScaler.VIRTUAL_HEIGHT);
+                ctx.stroke();
+            }
+
+            // Horizontal lines
+            for (let y = 0; y <= canvasScaler.VIRTUAL_HEIGHT; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvasScaler.VIRTUAL_WIDTH, y);
+                ctx.stroke();
+            }
+
+            // Draw virtual boundaries
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, canvasScaler.VIRTUAL_WIDTH, canvasScaler.VIRTUAL_HEIGHT);
+
+            // Draw center lines
+            ctx.strokeStyle = '#f00';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            // Vertical center
+            ctx.beginPath();
+            ctx.moveTo(canvasScaler.VIRTUAL_WIDTH / 2, 0);
+            ctx.lineTo(canvasScaler.VIRTUAL_WIDTH / 2, canvasScaler.VIRTUAL_HEIGHT);
+            ctx.stroke();
+
+            // Horizontal center
+            ctx.beginPath();
+            ctx.moveTo(0, canvasScaler.VIRTUAL_HEIGHT / 2);
+            ctx.lineTo(canvasScaler.VIRTUAL_WIDTH, canvasScaler.VIRTUAL_HEIGHT / 2);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+        }
+
+        // Handle mouse move
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Convert to virtual coordinates
+            const virtualPos = canvasScaler.screenToVirtual(e.clientX, e.clientY);
+
+            mousePosEl.textContent = `${mouseX.toFixed(0)}, ${mouseY.toFixed(0)}`;
+            virtualPosEl.textContent = `${virtualPos.x.toFixed(0)}, ${virtualPos.y.toFixed(0)}`;
+
+            // Draw cursor position
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            draw();
+
+            // Draw crosshair at virtual position
+            ctx.strokeStyle = '#ff0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(virtualPos.x - 10, virtualPos.y);
+            ctx.lineTo(virtualPos.x + 10, virtualPos.y);
+            ctx.moveTo(virtualPos.x, virtualPos.y - 10);
+            ctx.lineTo(virtualPos.x, virtualPos.y + 10);
+            ctx.stroke();
+
+            // Draw virtual coordinates
+            ctx.fillStyle = '#ff0';
+            ctx.font = '12px Arial';
+            ctx.fillText(`(${virtualPos.x.toFixed(0)}, ${virtualPos.y.toFixed(0)})`, virtualPos.x + 15, virtualPos.y - 15);
+        });
+
+        // Handle click
+        canvas.addEventListener('click', (e) => {
+            const virtualPos = canvasScaler.screenToVirtual(e.clientX, e.clientY);
+            alert(`Clicked at virtual coordinates: (${virtualPos.x.toFixed(0)}, ${virtualPos.y.toFixed(0)})`);
+        });
+
+        // Initial draw
+        draw();
+
+        // Update info periodically
+        setInterval(() => {
+            const scale = canvasScaler.getScale();
+            const virtualRes = canvasScaler.getVirtualResolution();
+            const infoEl = document.getElementById('info');
+
+            infoEl.innerHTML = `
+                <h3>Canvas Scaling Test</h3>
+                <p>Virtual Resolution: ${virtualRes.width}x${virtualRes.height}</p>
+                <p>Actual Canvas Size: ${canvas.width}x${canvas.height}</p>
+                <p>Display Size: ${canvas.offsetWidth.toFixed(0)}x${canvas.offsetHeight.toFixed(0)}</p>
+                <p>Scale Factor: ${scale.toFixed(2)}x</p>
+                <p>Offset: (${canvasScaler.offsetX.toFixed(0)}, ${canvasScaler.offsetY.toFixed(0)})</p>
+                <p>Resize the window to test scaling</p>
+                <p>Click to see coordinate mapping</p>
+            `;
+        }, 100);
+    </script>
+</body>
+</html>
