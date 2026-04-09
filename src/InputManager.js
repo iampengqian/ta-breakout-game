@@ -25,4 +25,8 @@ export class InputManager {
   getRightPressed() {
     return this.isKeyPressed('ArrowRight') || this.isKeyPressed('d')
   }
+
+  getSpacePressed() {
+    return this.isKeyPressed(' ')
+  }
 }
