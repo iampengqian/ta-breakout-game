@@ -1,0 +1,28 @@
+{
+  "name": "ta-breakout-game",
+  "version": "1.0.0",
+  "description": "A modular breakout game implementation",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "esbuild src/index.js --bundle --outfile=dist/bundle.js --format=esm",
+    "dev": "esbuild src/index.js --bundle --outfile=dist/bundle.js --format=esm --watch",
+    "lint": "eslint src/**/*.js",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": [
+    "game",
+    "breakout",
+    "canvas",
+    "es6"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "eslint": "^8.57.0",
+    "jsdom": "^29.0.2",
+    "vitest": "^2.0.0"
+  }
+}
