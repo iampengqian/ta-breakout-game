@@ -6,7 +6,7 @@ export class Brick {
     this.height = height
     this.color = color
     this.health = health
-    this.visible = true
+    this.status = 1
   }
 
   draw(ctx) {
