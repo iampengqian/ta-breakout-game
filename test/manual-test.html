@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Collision Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #000;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Collision Detection Manual Test</h1>
+    <p>Check console for test results</p>
+    <canvas id="gameCanvas" width="480" height="320"></canvas>
+    <script type="module">
+        import { GameManager } from './src/GameManager.js'
+        import { Ball } from './src/entities/Ball.js'
+        import { Paddle } from './src/entities/Paddle.js'
+        import { Brick } from './src/entities/Brick.js'
+
+        // Create game manager
+        const gameManager = new GameManager('gameCanvas');
+
+        console.log('=== Testing Collision Detection ===');
+
+        // Test 1: Ball-Paddle collision
+        console.log('\n1. Testing Ball-Paddle Collision');
+        const ball = gameManager.entities.ball;
+        const paddle = gameManager.entities.paddle;
+
+        // Position ball to hit paddle from above
+        ball.x = paddle.x + paddle.width / 2;
+        ball.y = paddle.y - ball.radius - 1;
+
+        // Move ball down to hit paddle
+        ball.update();
+        gameManager.checkCollisions();
+
+        if (ball.speedY < 0) {
+            console.log('✓ Ball bounces up when hitting paddle top');
+        } else {
+            console.log('✗ Ball does not bounce up when hitting paddle top');
+        }
+
+        // Test 2: Ball-Brick collision
+        console.log('\n2. Testing Ball-Brick Collision');
+        const brick = gameManager.entities.bricks[0][0];
+        if (brick) {
+            // Position ball to hit brick from below
+            ball.x = brick.x + brick.width / 2;
+            ball.y = brick.y + brick.height + ball.radius + 1;
+            ball.speedY = -5; // Ball moving up
+
+            ball.update();
+            const wasVisible = brick.visible;
+            gameManager.checkCollisions();
+
+            if (!brick.visible && wasVisible) {
+                console.log('✓ Brick is destroyed when hit');
+                console.log(`✓ Score increased: ${gameManager.score}`);
+            } else {
+                console.log('✗ Brick is not destroyed when hit');
+            }
+        }
+
+        // Test 3: Victory condition
+        console.log('\n3. Testing Victory Condition');
+        // Destroy all bricks
+        let allBricksDestroyed = true;
+        for (let r = 0; r < gameManager.entities.bricks.length; r++) {
+            for (let c = 0; c < gameManager.entities.bricks[r].length; c++) {
+                const brick = gameManager.entities.bricks[r][c];
+                if (brick && brick.visible) {
+                    allBricksDestroyed = false;
+                    brick.visible = false;
+                }
+            }
+        }
+
+        gameManager.checkWinCondition();
+        if (gameManager.gameState === 'victory') {
+            console.log('✓ Victory condition triggers when all bricks destroyed');
+        } else {
+            console.log('✗ Victory condition does not trigger');
+        }
+
+        console.log('\n=== Manual Test Complete ===');
+    </script>
+</body>
+</html>
